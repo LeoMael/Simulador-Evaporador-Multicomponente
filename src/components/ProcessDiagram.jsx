@@ -381,7 +381,7 @@ export default function ProcessDiagram({
                         <div style={styles.badgeVapor}>
                             <div style={styles.badgeTitleVapor}>Vapor (V)</div>
                             <div style={styles.badgeRow}>
-                                Flujo: <strong>{(vf * feed).toFixed(1)} kgmol/h</strong>
+                                Flujo: <strong>{(vf * feed).toFixed(0)} kgmol/h</strong>
                             </div>
                             <div style={styles.badgeRow}>
                                 y ({comp0.Componente}): <motion.strong key={yValues[0]} animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 0.3 }}>{(yValues[0] || 0).toFixed(3)}</motion.strong>
@@ -397,7 +397,7 @@ export default function ProcessDiagram({
                         <div style={styles.badgeLiquid}>
                             <div style={styles.badgeTitleLiquid}>Líquido (L)</div>
                             <div style={styles.badgeRow}>
-                                Flujo: <strong>{((1.0 - vf) * feed).toFixed(1)} kgmol/h</strong>
+                                Flujo: <strong>{((1.0 - vf) * feed).toFixed(0)} kgmol/h</strong>
                             </div>
                             <div style={styles.badgeRow}>
                                 x ({comp0.Componente}): <motion.strong key={xValues[0]} animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 0.3 }}>{(xValues[0] || 0).toFixed(3)}</motion.strong>

@@ -53,7 +53,7 @@ export default function MetricsGrid({ vf, feed, results }) {
                     <ArrowUpRight size={16} color="#10b981" />
                 </div>
                 <div style={styles.valueRow}>
-                    <span style={styles.value}>{vFlow.toFixed(1)}</span>
+                    <span style={styles.value}>{vFlow.toFixed(0)}</span>
                     <span style={styles.unit}>kgmol/h</span>
                 </div>
                 <div style={styles.footerRow}>
@@ -68,7 +68,7 @@ export default function MetricsGrid({ vf, feed, results }) {
                     <ArrowDownRight size={16} color="#f97316" />
                 </div>
                 <div style={styles.valueRow}>
-                    <span style={styles.value}>{lFlow.toFixed(1)}</span>
+                    <span style={styles.value}>{lFlow.toFixed(0)}</span>
                     <span style={styles.unit}>kgmol/h</span>
                 </div>
                 <div style={styles.footerRow}>

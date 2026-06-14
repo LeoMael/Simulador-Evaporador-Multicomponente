@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { 
-    Database, 
-    RefreshCw, 
-    FileText, 
-    FileSpreadsheet, 
-    Activity, 
-    Settings, 
-    Info, 
-    HelpCircle 
+import {
+    Database,
+    RefreshCw,
+    FileText,
+    FileSpreadsheet,
+    Activity,
+    Settings,
+    Info,
+    HelpCircle
 } from 'lucide-react';
 import ProcessDiagram from './components/ProcessDiagram';
 import ComponentTable from './components/ComponentTable';
@@ -29,7 +29,7 @@ export default function App() {
     const [temperature, setTemperature] = useState(50.0); // °C
     const [pressure, setPressure] = useState(200.0); // kPa
     const [feedFlow, setFeedFlow] = useState(1000.0); // kgmol/h
-    
+
     // Configuración del solver y simulación
     const [isManualK, setIsManualK] = useState(true);
     const [initialVf, setInitialVf] = useState(0.1); // Guess inicial V/F
@@ -60,10 +60,10 @@ export default function App() {
                     const denom = tempC + comp.Antoine_C;
                     const safeDenom = Math.abs(denom) < 1e-9 ? (denom >= 0 ? 1e-9 : -1e-9) : denom;
                     const pSatmmHg = Math.pow(10, comp.Antoine_A - comp.Antoine_B / safeDenom);
-                    
+
                     // mmHg a kPa (1 mmHg = 0.1333224 kPa)
                     const pSatkPa = pSatmmHg * 0.1333224;
-                    
+
                     // K = Psat / P
                     return pSatkPa / pressure;
                 }
@@ -72,7 +72,7 @@ export default function App() {
             // 2. Verificar límites físicos para asegurar que existe solución bifásica
             // R(0) = sum( z_i * (K_i - 1) )
             const r0 = components.reduce((sum, comp, idx) => sum + comp.z * (kValues[idx] - 1.0), 0.0);
-            
+
             // R(1) = sum( z_i * (K_i - 1) / K_i ) = 1 - sum( z_i / K_i )
             const r1 = components.reduce((sum, comp, idx) => {
                 const k = kValues[idx];
@@ -123,7 +123,7 @@ export default function App() {
                         const K = kValues[c];
                         const denom = 1.0 + vf * (K - 1.0);
                         const safeDenom = Math.abs(denom) < 1e-15 ? 1e-15 : denom;
-                        
+
                         r += ((K - 1.0) * z) / safeDenom;
                         rPrime -= ((K - 1.0) * (K - 1.0) * z) / (safeDenom * safeDenom);
                     }
@@ -160,6 +160,15 @@ export default function App() {
                         upper = vf;
                     }
 
+                    if (isManualK) {
+                        nextVf = Math.round(nextVf * 100) / 100;
+                        if (nextVf === vf) {
+                            vf_solved = vf;
+                            converged = true;
+                            break;
+                        }
+                    }
+
                     vf = nextVf;
                     vf_solved = vf;
                 }
@@ -171,11 +180,11 @@ export default function App() {
             components.forEach((comp, idx) => {
                 const z = comp.z;
                 const k = kValues[idx];
-                
+
                 // x_i = z_i / [ 1 + (K_i - 1) * V/F ]
                 let denom = 1.0 + vf_solved * (k - 1.0);
                 let x = z / (Math.abs(denom) < 1e-15 ? 1e-15 : denom);
-                
+
                 // Asegurar cotas físicas
                 if (vf_solved <= 0) {
                     x = z;
@@ -255,7 +264,7 @@ export default function App() {
             return;
         }
         const next = components.filter((_, i) => i !== idx);
-        
+
         // Renormalizar automáticamente tras eliminar
         const sumZ = next.reduce((sum, c) => sum + c.z, 0);
         if (sumZ > 0) {
@@ -299,7 +308,7 @@ export default function App() {
         csvContent += `Flujo de Alimentacion (F),${feedFlow.toFixed(2)},kgmol/h\n`;
         csvContent += `Modo de Calculo de K,${isManualK ? "Manual" : "Automatico (Antoine)"},\n`;
         csvContent += `Estado Fisico,${results.phaseState},\n\n`;
-        
+
         csvContent += "RESULTADOS GLOBALES,VALOR,UNIDAD\n";
         csvContent += `Fraccion Vaporizada (V/F),${results.vf.toFixed(6)},mol vapor / mol alim\n`;
         csvContent += `Flujo de Vapor (V),${(results.vf * feedFlow).toFixed(2)},kgmol/h\n`;
@@ -307,10 +316,10 @@ export default function App() {
         csvContent += `Cp Promedio Alimentacion,${results.cpAvg.toFixed(2)},cal/mol·°C\n`;
         csvContent += `Calor de Vaporizacion Promedio,${results.dH_vap_avg.toFixed(2)},cal/mol\n`;
         csvContent += `Carga Termica de Evaporacion,${((results.vf * feedFlow * 1000 * results.dH_vap_avg) / 1000000).toFixed(4)},Mcal/h\n\n`;
-        
+
         csvContent += "RESULTADOS DETALLADOS POR COMPONENTE\n";
         csvContent += "Componente,z (Alimentacion),Flujo Alim (kgmol/h),Constante K,x (Liquido),y (Vapor),Flujo Liquido L_i (kgmol/h),Flujo Vapor V_i (kgmol/h),Cp Liquido (cal/mol.C),dH_vap (cal/mol),Antoine A,Antoine B,Antoine C\n";
-        
+
         components.forEach((c, idx) => {
             const z = c.z;
             const K = results.kValues[idx];
@@ -321,14 +330,14 @@ export default function App() {
             const vapFlow = y * results.vf * feedFlow;
             csvContent += `${c.Componente},${z.toFixed(6)},${feedCompFlow.toFixed(4)},${K.toFixed(6)},${x.toFixed(6)},${y.toFixed(6)},${liqFlow.toFixed(4)},${vapFlow.toFixed(4)},${c.Cp.toFixed(2)},${c.dH_vap.toFixed(2)},${c.Antoine_A.toFixed(5)},${c.Antoine_B.toFixed(2)},${c.Antoine_C.toFixed(2)}\n`;
         });
-        
+
         const sumZ = components.reduce((s, c) => s + c.z, 0);
         const sumX = results.xValues.reduce((s, v) => s + v, 0);
         const sumY = results.yValues.reduce((s, v) => s + v, 0);
         const sumLiq = (1 - results.vf) * feedFlow;
         const sumVap = results.vf * feedFlow;
         csvContent += `SUMA / TOTAL,${sumZ.toFixed(4)},${feedFlow.toFixed(2)},,${sumX.toFixed(4)},${sumY.toFixed(4)},${sumLiq.toFixed(2)},${sumVap.toFixed(2)},,,,,\n`;
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -388,13 +397,13 @@ export default function App() {
             [makeCell("========================================================================================================================="), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell(""), makeCell("")],
             [],
             [
-                makeCell("Componente"), 
-                makeCell("Fracción Alim (z)"), 
-                makeCell("Flujo Alim (kgmol/h)"), 
-                makeCell("Constante K"), 
-                makeCell("Fracción Líquida (x)"), 
-                makeCell("Fracción Vapor (y)"), 
-                makeCell("Flujo Líquido (kgmol/h)"), 
+                makeCell("Componente"),
+                makeCell("Fracción Alim (z)"),
+                makeCell("Flujo Alim (kgmol/h)"),
+                makeCell("Constante K"),
+                makeCell("Fracción Líquida (x)"),
+                makeCell("Fracción Vapor (y)"),
+                makeCell("Flujo Líquido (kgmol/h)"),
                 makeCell("Flujo Vapor (kgmol/h)"),
                 makeCell("Cp Líquido (cal/mol·°C)"),
                 makeCell("dH_vap (cal/mol)"),
@@ -455,7 +464,7 @@ export default function App() {
             { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
             { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } }
         ];
-        
+
         wsComps['!cols'] = [
             { wch: 16 }, // Componente
             { wch: 18 }, // z
@@ -506,19 +515,19 @@ export default function App() {
                     <div className="section-group">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3>Variables de Operación</h3>
-                            
+
                             {/* Toggle Antoine vs Manual */}
                             <div className="toggle-container" id="k-mode-selector">
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     className={`toggle-btn ${isManualK ? 'active' : ''}`}
                                     onClick={() => setIsManualK(true)}
                                     id="btn-k-manual"
                                 >
                                     K Manual
                                 </button>
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     className={`toggle-btn ${!isManualK ? 'active' : ''}`}
                                     onClick={() => setIsManualK(false)}
                                     id="btn-k-antoine"
@@ -535,11 +544,11 @@ export default function App() {
                                     <label htmlFor="temp-slider">Temperatura de la Cámara (T):</label>
                                     <strong style={{ color: '#f43f5e' }}>{temperature.toFixed(1)} °C</strong>
                                 </div>
-                                <input 
-                                    type="range" 
+                                <input
+                                    type="range"
                                     id="temp-slider"
-                                    min="0" 
-                                    max="150" 
+                                    min="0"
+                                    max="150"
                                     step="0.5"
                                     value={temperature}
                                     onChange={(e) => setTemperature(parseFloat(e.target.value))}
@@ -553,11 +562,11 @@ export default function App() {
                                     <label htmlFor="pres-slider">Presión de la Cámara (P):</label>
                                     <strong style={{ color: '#06b6d4' }}>{pressure.toFixed(0)} kPa</strong>
                                 </div>
-                                <input 
-                                    type="range" 
+                                <input
+                                    type="range"
                                     id="pres-slider"
-                                    min="50" 
-                                    max="1000" 
+                                    min="50"
+                                    max="1000"
                                     step="5"
                                     value={pressure}
                                     onChange={(e) => setPressure(parseFloat(e.target.value))}
@@ -571,11 +580,11 @@ export default function App() {
                                     <label htmlFor="feed-slider">Flujo de Alimentación (F):</label>
                                     <strong style={{ color: '#3b82f6' }}>{feedFlow.toFixed(0)} kgmol/h</strong>
                                 </div>
-                                <input 
-                                    type="range" 
+                                <input
+                                    type="range"
                                     id="feed-slider"
-                                    min="100" 
-                                    max="5000" 
+                                    min="100"
+                                    max="5000"
                                     step="50"
                                     value={feedFlow}
                                     onChange={(e) => setFeedFlow(parseFloat(e.target.value))}
@@ -589,7 +598,7 @@ export default function App() {
                     <FileUploader onDataLoaded={handleDataLoaded} />
 
                     {/* Component Table */}
-                    <ComponentTable 
+                    <ComponentTable
                         components={components}
                         onUpdateComponent={handleUpdateComponent}
                         onAddComponent={handleAddComponent}
@@ -600,8 +609,8 @@ export default function App() {
 
                     {/* Opciones Avanzadas del Solver */}
                     <div style={{ marginTop: '4px' }}>
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             className="btn btn-outline btn-xs"
                             onClick={() => setShowAdvanced(!showAdvanced)}
                             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -609,14 +618,14 @@ export default function App() {
                         >
                             <Settings size={12} /> {showAdvanced ? "Ocultar" : "Mostrar"} Parámetros del Resolvedor
                         </button>
-                        
+
                         {showAdvanced && (
                             <div className="section-group" style={{ marginTop: '10px', animation: 'fadeIn 0.2s ease' }}>
                                 <h3>Parámetros Rachford-Rice</h3>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
                                     <div className="input-field">
                                         <label htmlFor="solver-guess">V/F Inicial (Guess):</label>
-                                        <input 
+                                        <input
                                             type="number"
                                             id="solver-guess"
                                             min="0.01"
@@ -680,20 +689,20 @@ export default function App() {
                         </div>
                         {results && (
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <button 
-                                    type="button" 
-                                    className="btn btn-primary btn-xs" 
-                                    onClick={exportExcel} 
+                                <button
+                                    type="button"
+                                    className="btn btn-primary btn-xs"
+                                    onClick={exportExcel}
                                     style={{ padding: '6px 12px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     id="header-btn-export-excel"
                                     title="Exportar reporte detallado a Excel"
                                 >
                                     <FileSpreadsheet size={13} /> Exportar Excel
                                 </button>
-                                <button 
-                                    type="button" 
-                                    className="btn btn-outline btn-xs" 
-                                    onClick={exportCSV} 
+                                <button
+                                    type="button"
+                                    className="btn btn-outline btn-xs"
+                                    onClick={exportCSV}
                                     style={{ padding: '6px 12px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     id="header-btn-export-csv"
                                     title="Exportar datos a CSV"
@@ -707,7 +716,7 @@ export default function App() {
                     {results && (
                         <>
                             {/* Evaporador SVG Diagram */}
-                            <ProcessDiagram 
+                            <ProcessDiagram
                                 vf={results.vf}
                                 T_flash={temperature}
                                 pressure={pressure}
@@ -718,14 +727,14 @@ export default function App() {
                             />
 
                             {/* Metrics indicators */}
-                            <MetricsGrid 
+                            <MetricsGrid
                                 vf={results.vf}
                                 feed={feedFlow}
                                 results={results}
                             />
 
                             {/* Composition bar chart */}
-                            <CompositionChart 
+                            <CompositionChart
                                 components={components}
                                 xValues={results.xValues}
                                 yValues={results.yValues}
@@ -736,7 +745,7 @@ export default function App() {
                                 <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h3 style={{ fontSize: '0.85rem' }}>Detalle de Fracciones en Equilibrio</h3>
                                 </div>
-                                
+
                                 <div className="table-container">
                                     <table className="data-table results-table" style={{ fontSize: '0.78rem' }}>
                                         <thead>
@@ -765,8 +774,8 @@ export default function App() {
                                                         <td style={{ padding: '6px 8px', color: '#22d3ee' }}>{K.toFixed(4)}</td>
                                                         <td style={{ padding: '6px 8px', color: '#06b6d4', fontWeight: 'bold' }}>{x.toFixed(4)}</td>
                                                         <td style={{ padding: '6px 8px', color: '#10b981', fontWeight: 'bold' }}>{y.toFixed(4)}</td>
-                                                        <td style={{ padding: '6px 8px' }}>{liqFlow.toFixed(1)}</td>
-                                                        <td style={{ padding: '6px 8px' }}>{vapFlow.toFixed(1)}</td>
+                                                        <td style={{ padding: '6px 8px' }}>{liqFlow.toFixed(0)}</td>
+                                                        <td style={{ padding: '6px 8px' }}>{vapFlow.toFixed(0)}</td>
                                                     </tr>
                                                 );
                                             })}
@@ -785,10 +794,10 @@ export default function App() {
                                                     <strong>{results.yValues.reduce((s, v) => s + v, 0).toFixed(4)}</strong>
                                                 </td>
                                                 <td style={{ padding: '6px 8px' }}>
-                                                    <strong>{((1.0 - results.vf) * feedFlow).toFixed(1)}</strong>
+                                                    <strong>{((1.0 - results.vf) * feedFlow).toFixed(0)}</strong>
                                                 </td>
                                                 <td style={{ padding: '6px 8px' }}>
-                                                    <strong>{(results.vf * feedFlow).toFixed(1)}</strong>
+                                                    <strong>{(results.vf * feedFlow).toFixed(0)}</strong>
                                                 </td>
                                             </tr>
                                         </tfoot>
