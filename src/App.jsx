@@ -32,7 +32,7 @@ export default function App() {
     
     // Configuración del solver y simulación
     const [isManualK, setIsManualK] = useState(true);
-    const [initialVf, setInitialVf] = useState(0.5); // Guess inicial V/F
+    const [initialVf, setInitialVf] = useState(0.1); // Guess inicial V/F
     const [tolerance, setTolerance] = useState(1e-7);
     const [maxIterations, setMaxIterations] = useState(100);
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -817,7 +817,7 @@ export default function App() {
                                             {results.iterations.map((step, idx) => (
                                                 <tr key={idx}>
                                                     <td style={{ padding: '4px 6px' }}>{step.iter}</td>
-                                                    <td style={{ padding: '4px 6px', fontWeight: 'bold' }}>{step.vf.toFixed(6)}</td>
+                                                    <td style={{ padding: '4px 6px', fontWeight: 'bold' }}>{step.vf.toFixed(4)}</td>
                                                     <td style={{ padding: '4px 6px', color: Math.abs(step.r) < tolerance ? '#10b981' : '#f97316' }}>
                                                         {step.r.toExponential(4)}
                                                     </td>
